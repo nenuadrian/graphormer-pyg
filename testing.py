@@ -43,6 +43,8 @@ model = Graphormer(
     max_path_distance=MAX_PATH_DISTANCE,
 )
 
+print(model)
+
 # precalculate attributes for each graph
 modified_data_list = []
 for data in dataset:
