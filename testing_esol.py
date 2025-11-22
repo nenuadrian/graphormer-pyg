@@ -11,6 +11,7 @@ from graphormer.model import Graphormer
 from graphormer.functional import precalculate_custom_attributes, precalculate_paths
 
 import time
+import wandb
 
 # Install rdkit
 # !pip install rdkit
@@ -27,6 +28,23 @@ N_HEADS = 4
 MAX_IN_DEGREE = 5
 MAX_OUT_DEGREE = 5
 MAX_PATH_DISTANCE = 5
+
+# Initialize W&B
+wandb.init(
+    project="graphormer-esol",
+    config={
+        "num_layers": NUM_LAYERS,
+        "node_dim": NODE_DIM,
+        "ff_dim": FF_DIM,
+        "n_heads": N_HEADS,
+        "max_in_degree": MAX_IN_DEGREE,
+        "max_out_degree": MAX_OUT_DEGREE,
+        "max_path_distance": MAX_PATH_DISTANCE,
+        "batch_size": 8,
+        "lr": 3e-4,
+        "epochs": 10,
+    }
+)
 
 # Create model
 model = Graphormer(
@@ -82,13 +100,23 @@ optimizer = torch.optim.AdamW(model.parameters(), lr=3e-4)
 loss_function = nn.L1Loss(reduction="sum") 
 
 # Training and evaluation
-DEVICE = "cuda"
+# Determine the best available device
+if torch.backends.mps.is_available():
+    DEVICE = "mps"
+elif torch.cuda.is_available():
+    DEVICE = "cuda"
+else:
+    DEVICE = "cpu"
 
-# Ensure CUDA is available
-print(f"CUDA available: {torch.cuda.is_available()}")
-if torch.cuda.is_available():
+# Print device information
+print(f"Using device: {DEVICE}")
+if DEVICE == "cuda":
     print(f"Current device: {torch.cuda.current_device()}")
     print(f"Device name: {torch.cuda.get_device_name(0)}")
+elif DEVICE == "mps":
+    print("Using MPS (Apple Silicon GPU)")
+else:
+    print("Using CPU")
 
 model.to(DEVICE)
 for epoch in range(10):
@@ -116,7 +144,8 @@ for epoch in range(10):
         optimizer.step()
     
     epoch_time = time.time() - epoch_start
-    print(f"Epoch {epoch+1} - TRAIN_LOSS: {batch_loss / len(train_ids):.6f}, Time: {epoch_time:.2f}s")
+    train_loss = batch_loss / len(train_ids)
+    print(f"Epoch {epoch+1} - TRAIN_LOSS: {train_loss:.6f}, Time: {epoch_time:.2f}s")
 
     model.eval()
     batch_loss = 0.0
@@ -134,4 +163,16 @@ for epoch in range(10):
             
         batch_loss += loss.item()
 
-    print("EVAL LOSS", batch_loss / len(test_ids))
+    eval_loss = batch_loss / len(test_ids)
+    print("EVAL LOSS", eval_loss)
+
+    # Log to W&B
+    wandb.log({
+        "epoch": epoch + 1,
+        "train_loss": train_loss,
+        "eval_loss": eval_loss,
+        "epoch_time": epoch_time,
+    })
+
+# Finish W&B run
+wandb.finish()

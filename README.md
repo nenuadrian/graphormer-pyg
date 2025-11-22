@@ -1,4 +1,13 @@
 # graphormer-pyg
+
+
+```
+pip install wandb rdkit torch torch-geometric networkx
+```
+
+
+## previous
+
 [Microsoft Graphormer](https://github.com/microsoft/Graphormer) rewritten in PyTorch-Geometric
 
 # Modifications made
