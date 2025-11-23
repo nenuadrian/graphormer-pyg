@@ -13,7 +13,7 @@ from graphormer.functional import precalculate_custom_attributes, precalculate_p
 import time
 import wandb
 
-dataset = MoleculeNet(root="./", name="ESOL")
+dataset = MoleculeNet(root="./", name="lipo")
 print(dataset)
 
 # HYPER-PARAMETERS
